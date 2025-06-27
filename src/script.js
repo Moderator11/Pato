@@ -326,7 +326,7 @@
                     var backward = 15;
                     var wideness = 15;
                     var pointbackward = 30;
-                    var tailSplit = 5;
+                    var tailSplit = 5 + Math.sin(Date.now() / 400) / 2;
                     var left = RotationToVector(o.rotation - 90);
                     var right = RotationToVector(o.rotation + 90);
                     var back = RotationToVector(o.rotation).MultiplyScalar(-1);
@@ -345,7 +345,8 @@
                     if(state == DuckState.SWALLOWING) {
                         this.ctx.ellipse(o.position.x, o.position.y, 30 * o.radius + Math.sin(Date.now() / 100), 20 * o.radius + Math.cos(Date.now() / 100), o.rotation, 0, Math.PI * 2);
                     } else {
-                        this.ctx.ellipse(o.position.x, o.position.y, 30 * o.radius, 20 * o.radius, o.rotation, 0, Math.PI * 2);
+                        o.rotation += Math.sin((o.position.x + o.position.y) / 10) / 50;
+                        this.ctx.ellipse(o.position.x, o.position.y, 30 * o.radius + Math.sin(Date.now() / 400), 20 * o.radius + Math.sin(Date.now() / 400), o.rotation, 0, Math.PI * 2);
                     }
                     this.ctx.closePath();
                     this.ctx.fill();
@@ -356,7 +357,8 @@
                     if(state == DuckState.SWALLOWING) {
                         this.ctx.ellipse(o.position.x, o.position.y, 15 * o.radius + Math.cos(Date.now() / 100), 12 * o.radius + Math.sin(Date.now() / 100), o.rotation, 0, Math.PI * 2);
                     } else {
-                        this.ctx.ellipse(o.position.x, o.position.y, 15 * o.radius, 12 * o.radius, o.rotation, 0, Math.PI * 2);
+                        var forward = RotationToVector(o.rotation).MultiplyScalar(Math.sin(Date.now() / 400));
+                        this.ctx.ellipse(o.position.x + forward.x, o.position.y + forward.y, 15 * o.radius, 12 * o.radius, o.rotation, 0, Math.PI * 2);
                     }
                     this.ctx.closePath();
                     this.ctx.fill();
@@ -367,7 +369,8 @@
                     if(state == DuckState.EATING) {
                         this.ctx.ellipse(o.position.x, o.position.y, 10 * o.radius + Math.sin(Date.now() / 50), 8 * o.radius + Math.cos(Date.now() / 50), o.rotation, 0, Math.PI * 2);
                     } else {
-                        this.ctx.ellipse(o.position.x, o.position.y, 10 * o.radius, 8 * o.radius, o.rotation, 0, Math.PI * 2);
+                        var forward = RotationToVector(o.rotation).MultiplyScalar(Math.sin(Date.now() / 400));
+                        this.ctx.ellipse(o.position.x + forward.x, o.position.y + forward.y, 10 * o.radius, 8 * o.radius, o.rotation, 0, Math.PI * 2);
                     }
                     this.ctx.closePath();
                     this.ctx.fill();
@@ -397,9 +400,10 @@
                     this.ctx.fill();
                     case "eye1":
                     case "eye2":
+                    var forward = RotationToVector(o.rotation).MultiplyScalar(Math.sin(Date.now() / 400));
                     this.ctx.fillStyle = o.color;
                     this.ctx.beginPath();
-                    this.ctx.ellipse(o.position.x, o.position.y, o.radius, o.radius / 2, o.rotation, 0, 2 * Math.PI);
+                    this.ctx.ellipse(o.position.x + forward.x, o.position.y + forward.y, o.radius, o.radius / 2, o.rotation, 0, 2 * Math.PI);
                     this.ctx.closePath();
                     this.ctx.fill();
                     break;

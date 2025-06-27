@@ -1,5 +1,7 @@
 # Pato, lovely duck in your web
 
+![showcase gif](./public/showcase.gif)
+
 This project is an interactive web-based duck rendering engine that lets you play around with a cute little duck named **Pato**. [Try it here](https://moderator11.github.io/Pato/)
 
 # Bring him home to your website
