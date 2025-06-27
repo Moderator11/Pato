@@ -49,6 +49,17 @@
         return new Vector2(v.x / l2norm, v.y / l2norm);
     }
     
+    /**@param {Vector2} v1*/
+    /**@param {Vector2} v2*/
+    function Distance(v1, v2) {
+        return new Vector2(v1.x - v2.x, v1.y - v2.y).Magnitude();
+    }
+
+    /**@param {Number} rot*/
+    function RotationToVector(rot) {
+        return new Vector2(Math.cos(rot), Math.sin(rot));
+    }
+    
     //#endregion Vector2
     //#region PhysicEngine2D
     
@@ -91,25 +102,28 @@
             const footForward = 20 * 1.5;
             const headForward = 40;
             const cockForward = 20;
+            const footStepLength = 25;
             const footStepAhead = 1.75;//1.5;
             const eyeSpread = 10;
             const eyeForward = 10;
-
+            
             for (let i = 0; i < this.physicPool.length; i++) {
                 const o = this.physicPool[i];
                 switch(o.name) {
                     case "body":
-                    var h = this.physicPool.find(o => o.name === "head");
-                    o.desiredPosition.x = mouseX;
-                    o.desiredPosition.y = mouseY;
-                    //o.rotation = Math.atan2(mouseY - o.position.y, mouseX - o.position.x);
-                    if(Math.abs(h.rotation - o.rotation) > 0.1) o.desiredRotation = Math.atan2(mouseY - o.position.y, mouseX - o.position.x);
+                    if(state == DuckState.IDLING) {
+                        var h = this.physicPool.find(o => o.name === "head");
+                        o.desiredPosition.x = duckTargetX;
+                        o.desiredPosition.y = duckTargetY;
+                        //o.rotation = Math.atan2(mouseY - o.position.y, mouseX - o.position.x);
+                        if(Math.abs(h.rotation - o.rotation) > 0.1) o.desiredRotation = Math.atan2(duckTargetY - o.position.y, duckTargetX - o.position.x);
+                    }
                     break;
                     case "foot1":
                     var b = this.physicPool.find(o => o.name === "body");
                     var bdpx = b.position.x + Math.cos(b.rotation + 90) * footSpread + Math.cos(b.rotation) * footForward;
                     var bdpy = b.position.y + Math.sin(b.rotation + 90) * footSpread + Math.sin(b.rotation) * footForward;
-                    if(new Vector2(bdpx - o.desiredPosition.x, bdpy - o.desiredPosition.y).Magnitude() > 25 - Math.random() * stepRandomScale) {
+                    if(new Vector2(bdpx - o.desiredPosition.x, bdpy - o.desiredPosition.y).Magnitude() > footStepLength - Math.random() * stepRandomScale) {
                         o.desiredPosition.x += (bdpx - o.desiredPosition.x) * footStepAhead;
                         o.desiredPosition.y += (bdpy - o.desiredPosition.y) * footStepAhead;
                     }
@@ -118,7 +132,7 @@
                     var b = this.physicPool.find(o => o.name === "body");
                     var bdpx = b.position.x + Math.cos(b.rotation - 90) * footSpread + Math.cos(b.rotation) * footForward;
                     var bdpy = b.position.y + Math.sin(b.rotation - 90) * footSpread + Math.sin(b.rotation) * footForward;
-                    if(new Vector2(bdpx - o.desiredPosition.x, bdpy - o.desiredPosition.y).Magnitude() > 25 + Math.random() * stepRandomScale) {
+                    if(new Vector2(bdpx - o.desiredPosition.x, bdpy - o.desiredPosition.y).Magnitude() > footStepLength + Math.random() * stepRandomScale) {
                         o.desiredPosition.x += (bdpx - o.desiredPosition.x) * footStepAhead;
                         o.desiredPosition.y += (bdpy - o.desiredPosition.y) * footStepAhead;
                     }
@@ -127,7 +141,7 @@
                     var b = this.physicPool.find(o => o.name === "body");
                     o.desiredPosition.x = b.position.x + Math.cos(b.rotation) * headForward;
                     o.desiredPosition.y = b.position.y + Math.sin(b.rotation) * headForward;
-                    o.rotation = Math.atan2(mouseY - o.position.y, mouseX - o.position.x);
+                    if(state == DuckState.IDLING) o.desiredRotation = Math.atan2(duckTargetY - o.position.y, duckTargetX - o.position.x);
                     break;
                     case "cock":
                     var h = this.physicPool.find(o => o.name === "head");
@@ -156,11 +170,13 @@
                 let d = v1.Magnitude();
                 switch(o.name) {
                     case "body":
-                    o.AddForce(this.deltaTime * this.meterToPixel, v1.Normalize().MultiplyScalar(f(d / 100 / 2, 1.5)));
+                    o.AddForce(this.deltaTime * this.meterToPixel, v1.Normalize().MultiplyScalar(duckDistancePolicy(d / 200, 1.5)));
                     o.UpdatePosition(this.deltaTime * this.meterToPixel);
                     o.velocity.MultiplyScalar(0.8);
-
-                    o.angularVelocity = (o.desiredRotation - o.rotation) / 10;
+                    
+                    var deltaRotation = o.desiredRotation - o.rotation;
+                    deltaRotation = (deltaRotation + Math.PI) % (2 * Math.PI) - Math.PI;
+                    o.angularVelocity = deltaRotation / 10;
                     o.UpdateRotation(this.deltaTime * this.meterToPixel);
                     break;
                     case "foot1":
@@ -170,22 +186,26 @@
                     o.velocity.MultiplyScalar(0.5);
                     break;
                     case "head":
+                    var deltaRotation = o.desiredRotation - o.rotation;
+                    deltaRotation = (deltaRotation + Math.PI) % (2 * Math.PI) - Math.PI;
+                    o.angularVelocity = deltaRotation / 2;
+                    o.UpdateRotation(this.deltaTime * this.meterToPixel);
+                    o.position.x = o.desiredPosition.x;
+                    o.position.y = o.desiredPosition.y;
+                    break;
                     case "cock":
                     case "eye1":
                     case "eye2":
                     o.position.x = o.desiredPosition.x;
                     o.position.y = o.desiredPosition.y;
                     break;
+                    case "food":
+                    o.UpdatePosition(this.deltaTime * this.meterToPixel);
+                    o.velocity.MultiplyScalar(0.9);
+                    break;
                 }
             }
         }
-    }
-    
-    function f(x, y) {
-        if(x >= 0 && x < 1) { return y * (x - 1); }
-        else if (x >= 1 && x < 2) { return y * (x - 1); }
-        else if (x >= 2 && x < 3) { return -y * (x - 3); }
-        else { return 0; }
     }
     
     class Ball {
@@ -205,14 +225,14 @@
             /**@type {Number}*/ this.desiredRotation = 0;
             /**@type {Number}*/ this.rotation = 0;
             /**@type {Number}*/ this.angularVelocity = 0;
-
+            
             /**@param {Vector2}*/ this.desiredPosition = new Vector2(0, 0);
         }
         
         UpdatePosition(timeElapsed) {
             this.position.AddWithScalar(this.velocity, timeElapsed);
         }
-
+        
         UpdateRotation(timeElapsed) {
             this.rotation += this.angularVelocity * timeElapsed;
         }
@@ -301,24 +321,54 @@
                     // this.ctx.lineTo(mouseX, mouseY);
                     // this.ctx.closePath();
                     // this.ctx.stroke();
+
+                    this.ctx.fillStyle = o.color;
+                    var backward = 15;
+                    var wideness = 15;
+                    var pointbackward = 30;
+                    var tailSplit = 5;
+                    var left = RotationToVector(o.rotation - 90);
+                    var right = RotationToVector(o.rotation + 90);
+                    var back = RotationToVector(o.rotation).MultiplyScalar(-1);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(o.position.x + right.x * wideness + back.x * backward, o.position.y + right.y * wideness + back.y * backward);
+                    this.ctx.lineTo(o.position.x + left.x * wideness + back.x * backward, o.position.y + left.y * wideness + back.y * backward);
+                    this.ctx.lineTo(o.position.x + back.x * (pointbackward + backward) + left.x * tailSplit, o.position.y + back.y * (pointbackward + backward) + left.y * tailSplit);
+                    this.ctx.lineTo(o.position.x + back.x * (pointbackward + backward) + back.x * -tailSplit, o.position.y + back.y * (pointbackward + backward) + back.y * -tailSplit);
+                    this.ctx.lineTo(o.position.x + back.x * (pointbackward + backward) + right.x * tailSplit, o.position.y + back.y * (pointbackward + backward) + right.y * tailSplit);
+                    this.ctx.moveTo(o.position.x + right.x * wideness + back.x * backward, o.position.y + right.y * wideness + back.y * backward);
+                    this.ctx.closePath();
+                    this.ctx.fill();
                     
                     this.ctx.fillStyle = o.color;
                     this.ctx.beginPath();
-                    this.ctx.ellipse(o.position.x, o.position.y, 30 * o.radius, 20 * o.radius, o.rotation, 0, Math.PI * 2);
+                    if(state == DuckState.SWALLOWING) {
+                        this.ctx.ellipse(o.position.x, o.position.y, 30 * o.radius + Math.sin(Date.now() / 100), 20 * o.radius + Math.cos(Date.now() / 100), o.rotation, 0, Math.PI * 2);
+                    } else {
+                        this.ctx.ellipse(o.position.x, o.position.y, 30 * o.radius, 20 * o.radius, o.rotation, 0, Math.PI * 2);
+                    }
                     this.ctx.closePath();
                     this.ctx.fill();
                     break;
                     case "head":
                     this.ctx.fillStyle = o.color;
                     this.ctx.beginPath();
-                    this.ctx.ellipse(o.position.x, o.position.y, 15 * o.radius, 12 * o.radius, o.rotation, 0, Math.PI * 2);
+                    if(state == DuckState.SWALLOWING) {
+                        this.ctx.ellipse(o.position.x, o.position.y, 15 * o.radius + Math.cos(Date.now() / 100), 12 * o.radius + Math.sin(Date.now() / 100), o.rotation, 0, Math.PI * 2);
+                    } else {
+                        this.ctx.ellipse(o.position.x, o.position.y, 15 * o.radius, 12 * o.radius, o.rotation, 0, Math.PI * 2);
+                    }
                     this.ctx.closePath();
                     this.ctx.fill();
                     break;
                     case "cock":
                     this.ctx.fillStyle = o.color;
                     this.ctx.beginPath();
-                    this.ctx.ellipse(o.position.x, o.position.y, 10 * o.radius, 8 * o.radius, o.rotation, 0, Math.PI * 2);
+                    if(state == DuckState.EATING) {
+                        this.ctx.ellipse(o.position.x, o.position.y, 10 * o.radius + Math.sin(Date.now() / 50), 8 * o.radius + Math.cos(Date.now() / 50), o.rotation, 0, Math.PI * 2);
+                    } else {
+                        this.ctx.ellipse(o.position.x, o.position.y, 10 * o.radius, 8 * o.radius, o.rotation, 0, Math.PI * 2);
+                    }
                     this.ctx.closePath();
                     this.ctx.fill();
                     break;
@@ -342,9 +392,17 @@
                     
                     this.ctx.fillStyle = o.color;
                     this.ctx.beginPath();
-                    this.ctx.arc(o.position.x - Math.cos(b.rotation) * 5, o.position.y - Math.sin(b.rotation) * 5, o.radius, 0, 2 * Math.PI);
+                    this.ctx.arc(o.position.x - Math.cos(b.rotation) * 5, o.position.y - Math.sin(b.rotation) * 5, o.radius * 1.2, 0, 2 * Math.PI);
                     this.ctx.closePath();
                     this.ctx.fill();
+                    case "eye1":
+                    case "eye2":
+                    this.ctx.fillStyle = o.color;
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(o.position.x, o.position.y, o.radius, o.radius / 2, o.rotation, 0, 2 * Math.PI);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    break;
                     default:
                     this.ctx.fillStyle = o.color;
                     this.ctx.beginPath();
@@ -367,6 +425,8 @@
     let physic = new PhysicEngine2D(render.cvs.width, render.cvs.height, desiredFrameTime / 1000, 50);
     render.InitializeRenderer(physic.physicPool);
     
+    /**@type {Number}*/ let duckTargetX = 0;//0;
+    /**@type {Number}*/ let duckTargetY = window.innerHeight / 2;//0;
     /**@type {Number}*/ let mouseX = window.innerWidth / 4;//0;
     /**@type {Number}*/ let mouseY = window.innerHeight / 2;//0;
     
@@ -381,13 +441,69 @@
     physic.physicPool.push(new Ball(1, 3, new Vector2(initialPosition.x, initialPosition.y), new Vector2(0, 0), "eye1", "black"));
     physic.physicPool.push(new Ball(1, 3, new Vector2(initialPosition.x, initialPosition.y), new Vector2(0, 0), "eye2", "black"));
     
+    initialPosition.AddWithScalar(new Vector2(100, 100), 1);
+    
+    const DuckState = {
+        NONE: -1,
+        IDLING: 0,
+        EATING: 1,
+        SWALLOWING: 2,
+        QUACKING: 3
+    };
+    Object.freeze(DuckState);
+    let state = DuckState.IDLING;
+    
+    let duckDistancePolicy = followWhileKeepingDistance;
+    
+    function followWhileKeepingDistance(x, y) {
+        if(x >= 0 && x < 1) { return y * (x - 1); }
+        else if (x >= 1 && x < 2) { return y * (x - 1); }
+        else if (x >= 2 && x < 3) { return -y * (x - 3); }
+        else { return 0; }
+    }
+    
+    function followUntilReach(x, y) {
+        if(0 <= x && x < 1) {
+            return x * y;
+        } else {
+            return 1 * y;
+        }
+    }
+    
     setInterval(() => {
         physic.UpdatePhysics();
         render.Render();
-    }, desiredFrameTime);
-    
-    window.addEventListener("mousemove", e => {
-        let b = physic.physicPool.find(o => o.name === "body");
+        //===============================DuckState
+        var food = physic.physicPool.find(o => o.name === "food");
+        var c = physic.physicPool.find(o => o.name === "cock");
+        var b = physic.physicPool.find(o => o.name === "body");
+        
+        if(food != null) {
+            duckTargetX = food.position.x;
+            duckTargetY = food.position.y;
+            duckDistancePolicy = followUntilReach;
+        } else {
+            if(!mouseDown) {
+                duckTargetX = mouseX;
+                duckTargetY = mouseY;
+            }
+        }
+        
+        if(food != null && Distance(food.position, c.position) < 10) {
+            physic.physicPool.splice(physic.physicPool.indexOf(food), 1);
+            state = DuckState.EATING;
+            setTimeout(() => {
+                state = DuckState.SWALLOWING;
+                setTimeout(() => {
+                    state = DuckState.NONE;
+                    setTimeout(() => {
+                        state = DuckState.IDLING;
+                        duckDistancePolicy = followWhileKeepingDistance;
+                    }, 300);
+                }, 500);
+            }, 1000);
+        }
+        
         let v = new Vector2(mouseX - b.position.x, mouseY - b.position.y);
         if(v.Magnitude() < 150) {
             physic.physicPool.find(o => o.name === "eye1").radius = 3 * 1.5;
@@ -396,12 +512,37 @@
             physic.physicPool.find(o => o.name === "eye1").radius = 3;
             physic.physicPool.find(o => o.name === "eye2").radius = 3;
         }
+        //===============================DuckState
+    }, desiredFrameTime);
+    
+    window.addEventListener("keydown", e => {
+        switch (e.key) {
+            case 'f':
+            physic.physicPool.push(new Ball(1, 5, new Vector2(mouseX, mouseY), new Vector2((1 - 2 * Math.random()) * 1, (1 - 2 * Math.random()) * 1), "food", "yellow"));
+            break;
+            
+            default:
+            break;
+        }
+    });
+    
+    window.addEventListener("mousemove", e => {
         if(mouseDown) return;
         mouseX = e.x;
         mouseY = e.y;
     });
     
+    let timer = null;
+    
     window.addEventListener("mousedown", e => {
+        if(!mouseDown) {
+            timer = setInterval(() => {
+                duckTargetX = window.innerWidth * Math.random();
+                duckTargetY = window.innerHeight * Math.random();
+            }, 3000);
+        } else {
+            clearInterval(timer);
+        }
         mouseDown = !mouseDown;
         mouseX = e.x;
         mouseY = e.y;
