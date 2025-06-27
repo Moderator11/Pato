@@ -1,0 +1,18 @@
+div {
+    position: absolute;
+    animation: showup 1s 3s forwards, showdown 1s 6s forwards;
+    opacity: 0;
+    left: calc(50vw - 100px);
+    top: calc(50vh - 10px);
+    font-size: 30px;
+}
+
+@keyframes showup {
+    0% { opacity: 0;}
+    100% { opacity: 1;}
+}
+
+@keyframes showdown {
+    0% { opacity: 1;}
+    100% { opacity: 0;}
+}
