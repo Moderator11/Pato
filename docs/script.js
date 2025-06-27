@@ -174,8 +174,8 @@
                     o.UpdatePosition(this.deltaTime * this.meterToPixel);
                     o.velocity.MultiplyScalar(0.8);
                     
-                    var deltaRotation = o.desiredRotation - o.rotation;
-                    deltaRotation = (deltaRotation + Math.PI) % (2 * Math.PI) - Math.PI;
+                    //var deltaRotation = o.desiredRotation - o.rotation;
+                    var deltaRotation = ((o.desiredRotation - o.rotation) + Math.PI) % (2 * Math.PI) - Math.PI;
                     o.angularVelocity = deltaRotation / 10;
                     o.UpdateRotation(this.deltaTime * this.meterToPixel);
                     break;
@@ -186,8 +186,7 @@
                     o.velocity.MultiplyScalar(0.5);
                     break;
                     case "head":
-                    var deltaRotation = o.desiredRotation - o.rotation;
-                    deltaRotation = (deltaRotation + Math.PI) % (2 * Math.PI) - Math.PI;
+                    var deltaRotation = ((o.desiredRotation - o.rotation) + Math.PI) % (2 * Math.PI) - Math.PI;
                     o.angularVelocity = deltaRotation / 2;
                     o.UpdateRotation(this.deltaTime * this.meterToPixel);
                     o.position.x = o.desiredPosition.x;
@@ -265,7 +264,7 @@
         let c2 = heatmapColorScheme[Math.floor(x * range) + 1];
         return blendColor(c1[0], c1[1], c1[2], c2[0], c2[1], c2[2], x % (1 / range) * range);
     }
-    
+
     class RenderEngine2D {
         /**@param {Window} w*/
         constructor(w) {
@@ -345,8 +344,16 @@
                     if(state == DuckState.SWALLOWING) {
                         this.ctx.ellipse(o.position.x, o.position.y, 30 * o.radius + Math.sin(Date.now() / 100), 20 * o.radius + Math.cos(Date.now() / 100), o.rotation, 0, Math.PI * 2);
                     } else {
-                        o.rotation += Math.sin((o.position.x + o.position.y) / 10) / 50;
-                        this.ctx.ellipse(o.position.x, o.position.y, 30 * o.radius + Math.sin(Date.now() / 400), 20 * o.radius + Math.sin(Date.now() / 400), o.rotation, 0, Math.PI * 2);
+                        let duckMovementPerFrame = Math.abs(this.duckPreviousX - o.position.x) + Math.abs(this.duckPreviousY - o.position.y);
+                        if(this.duckTravelDistance == null) {
+                            this.duckTravelDistance = 0;
+                        } else {
+                            this.duckTravelDistance = (this.duckTravelDistance + duckMovementPerFrame / 9) % (2 * Math.PI);
+                        }
+                        o.rotation += Math.sin(this.duckTravelDistance) / 50;
+                        this.duckPreviousX = o.position.x;
+                        this.duckPreviousY = o.position.y;
+                        this.ctx.ellipse(o.position.x, o.position.y, /*set to 50 LMAO*/30 * o.radius + Math.sin(Date.now() / 400), 20 * o.radius + Math.sin(Date.now() / 400), o.rotation, 0, Math.PI * 2);
                     }
                     this.ctx.closePath();
                     this.ctx.fill();
@@ -398,6 +405,7 @@
                     this.ctx.arc(o.position.x - Math.cos(b.rotation) * 5, o.position.y - Math.sin(b.rotation) * 5, o.radius * 1.2, 0, 2 * Math.PI);
                     this.ctx.closePath();
                     this.ctx.fill();
+                    //break; Some how this foot looks better LOL
                     case "eye1":
                     case "eye2":
                     var forward = RotationToVector(o.rotation).MultiplyScalar(Math.sin(Date.now() / 400));
