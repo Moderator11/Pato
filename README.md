@@ -1,4 +1,4 @@
-# Pato, lovely duck in your web
+# Pato, lovely duck in web
 
 ![showcase gif](./public/showcase.gif)
 
@@ -11,15 +11,15 @@ Let Pato waddle into your project with just a few lines of code.
 Add following code to your html body.
 
 ```html
-<script src="https://sootation.synology.me:2005/cards/webduck/script.js"><script>
+<script src="https://moderator11.github.io/Pato/script.js"></script>
 ```
 
-Note that it must be added at the very end of the body
+Note that it must be added to the body tag not in the head
 
 ```html
 <body>
     ...
-    <script src="https://sootation.synology.me:2005/cards/webduck/script.js"><script>
+    <script src="https://moderator11.github.io/Pato/script.js"></script>
 <body>
 ```
 
